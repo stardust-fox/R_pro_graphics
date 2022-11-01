@@ -1,0 +1,128 @@
+---
+title: "Homework_2"
+author: "Кульгаева А."
+date: "2022-10-30"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Задание 1
+
+Библиотеки и данные
+
+```{r data&library}
+library(dplyr)
+library(ggplot2)
+library(ggpubr)
+library(corrplot)
+library(plotly)
+library(factoextra)
+library(pheatmap)
+
+ins_data <- read.csv('C:/Users/Lenovo/Desktop/Настя/Биостатистика/Визуализация биомед данных (Дмитрий Серебренников)/ДЗ 2/insurance_cost.csv', stringsAsFactors = T)
+```
+
+# Задание 2
+
+Сделайте интерактивный plotly график отношения индекса массы тела и трат на
+страховку. Раскрасьте его по колонке smoker
+
+```{r plotly }
+plot_ly(data = ins_data[(ins_data$bmi != 0) & (ins_data$charges != 0),],
+        x = ~ bmi,
+        y = ~ charges,
+        color= ~smoker )
+```
+
+# Задание 3
+
+Сделайте тоже самое через ggplotly
+
+```{r ggplotly }
+plot_1 <- ins_data %>% 
+  filter(bmi != 0 & charges != 0) %>% 
+  ggplot(aes(x=bmi, y=charges, color = smoker)) + 
+  geom_point() +
+  theme_minimal()
+
+ggplotly(plot_1)
+```
+
+
+# Задание 4
+
+Кратко сделайте корреляционный анализ данных insurance_cost. Посмотрите
+документацию пакетов, которые мы проходили на занятии и, исходя из этого,
+постройте минимум два новых типа графика (которые мы не строили на занятии).
+
+```{r correlation}
+ins_clear <- ins_data %>% 
+  filter(age != 0 & bmi != 0 & children != 0 & charges != 0) %>% 
+  select(is.integer | is.numeric) # чистые данные
+
+ins_cor <- cor(ins_clear) # корреляционная матрица
+
+corrplot(ins_cor, method = 'color')
+corrplot(ins_cor, method = 'circle')
+corrplot(ins_cor, method = 'ellipse')
+corrplot(ins_cor, method = 'pie')
+```
+
+# Задание 5
+
+Превратите все номинативные переменные в бинарные/дамми. Т.е. sex и smoker должны стать бинарными (1/0), а каждое уникальное значение region – отдельной колонкой, где 1 говорит о наличии этого признака для наблюдения, а 0 – об отсутствии. Создайте новый датафрейм, где вы оставите только нумерические переменные.
+
+```{r}
+ins_bin <- ins_data %>%
+  mutate(`smoker`=ifelse(`smoker` == "no", 0, 1) %>% as.factor(), `sex`=ifelse(`sex` == "male", 1, 0)  %>% as.factor(), `southwest` = ifelse(`region` == "southwest", 1, 0)  %>% as.factor() , `southeast`= ifelse(`region` == "southeast", 1, 0)  %>% as.factor() , `northwest`= ifelse(`region` == "northwest", 1, 0)  %>% as.factor() ,`northeast`= ifelse(`region` == "northeast", 1, 0)  %>% as.factor() , `region` = NULL)
+
+ins_num <- ins_bin %>% select(where(is.numeric))
+```
+
+# Задание 6
+
+Постройте иерархическую кластеризацию на этом датафрейме
+
+```{r}
+ins_scaled <- scale(ins_num)
+ins_dist <- dist(ins_scaled, method = "euclidean")
+#as.matrix(ins_dist)[1:5,1:5]
+
+ins_hc <- hclust(d = ins_dist, 
+                        method = "ward.D2")
+fviz_dend(ins_hc, 
+          cex = 0.1)
+```
+
+# Задание 8
+
+Сделайте одновременный график heatmap и иерархической кластеризации
+
+```{r}
+pheatmap(ins_scaled)
+```
+
+# Задание 7
+
+Используя документацию или предложенный учебник сделайте ещё несколько возможных графиков по иерархической кластеризации. Попробуйте раскрасить кластеры разными цветами.
+
+```{r}
+ins_hc_mcquitty <- hclust(d = ins_dist, 
+                        method = "mcquitty")
+fviz_dend(ins_hc_mcquitty,
+          k = 4,
+          k_colors = c("#2E9FDF", "#00AFBB", "#E7B800", "#FC4E07"),
+          color_labels_by_k = TRUE,
+          cex = 0.1)
+
+ins_hc_average <- hclust(d = ins_dist, 
+                        method = "average")
+fviz_dend(ins_hc_average,
+          k = 3,
+          k_colors = c("#2E9FDF", "#E7B800","#FC4E07"),
+          color_labels_by_k = TRUE,
+          cex = 0.1)
+```
